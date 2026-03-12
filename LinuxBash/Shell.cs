@@ -4,11 +4,22 @@
     {
         private string host;
         private bool isRunning = true;
+        private List<string> history = new List<string>();
         public Shell()
         {
             host = $"{Environment.UserName}@{Environment.UserDomainName}";
         }
+        private static string[] ParseArguments(string input)
+        {
+            var matches = System.Text.RegularExpressions.Regex.Matches(
+                input,
+                @"[\""].+?[\""]|[^ ]+"
+            );
 
+            return matches
+                .Select(m => m.Value.Trim('"'))
+                .ToArray();
+        }
         public void Run()
         {
             Console.Clear();
@@ -23,7 +34,9 @@
                 if (string.IsNullOrWhiteSpace(input))
                     continue;
 
-                string[] parts = input.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                history.Add(input);
+
+                string[] parts = ParseArguments(input);
 
                 string command = parts[0];
                 string[] args = parts.Skip(1).ToArray();
@@ -57,7 +70,7 @@
                     break;
 
                 case "ls":
-                    Commands.Ls();
+                    Commands.Ls(args);
                     break;
 
                 case "cd":
@@ -65,7 +78,7 @@
                     break;
 
                 case "whoami":
-                    Commands.WhoAmI(host);
+                    Commands.WhoAmI();
                     break;
 
                 case "mkdir":
@@ -98,6 +111,10 @@
 
                 case "version":
                     Commands.Version();
+                    break;
+
+                case "history":
+                    Commands.History(history);
                     break;
 
                 default:

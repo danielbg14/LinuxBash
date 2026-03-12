@@ -11,9 +11,11 @@ namespace LinuxBash
 
             Console.WriteLine("Basic:");
             Console.WriteLine("  help        Show this help message");
+            Console.WriteLine("  echo        Print a message");
             Console.WriteLine("  clear       Clear the screen");
             Console.WriteLine("  exit        Exit the shell");
-            Console.WriteLine("  version     Show shell version");
+            Console.WriteLine("  version     Show the shell version");
+            Console.WriteLine("  history     Show command history");
 
             Console.WriteLine();
             Console.WriteLine("File & Directory:");
@@ -51,21 +53,32 @@ namespace LinuxBash
         {
             Console.WriteLine(Directory.GetCurrentDirectory());
         }
-        public static void Ls()
+        public static void Ls(string[] args)
         {
             try
             {
-                string[] files = Directory.GetFiles(".");
-                string[] dirs = Directory.GetDirectories(".");
+                string path = args.Length > 0 ? args[0] : ".";
+
+                if (!Directory.Exists(path))
+                {
+                    Console.WriteLine($"ls: cannot access '{path}': No such directory");
+                    return;
+                }
+
+                string[] files = Directory.GetFiles(path);
+                string[] dirs = Directory.GetDirectories(path);
 
                 foreach (var d in dirs)
                 {
                     Console.ForegroundColor = ConsoleColor.Blue;
                     Console.WriteLine(Path.GetFileName(d));
+                    Console.ResetColor();
                 }
-                Console.ResetColor();
                 foreach (var f in files)
+                {
                     Console.WriteLine(Path.GetFileName(f));
+
+                }
             }
             catch (Exception ex)
             {
@@ -74,26 +87,29 @@ namespace LinuxBash
         }
         public static void Cd(string[] args)
         {
-            if (args.Length == 0)
-            {
-                Console.WriteLine("Usage: cd <directory>");
-                return;
-            }
-
             try
             {
-                string path = args[0];
-                
-                if (path.StartsWith("~"))
+                string path;
+
+                if (args.Length == 0)
                 {
-                    string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-                    path = Path.Combine(home, path.Substring(1).TrimStart('\\', '/'));
+                    path = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
                 }
+                else
+                {
+                    path = args[0];
+                    if (path.StartsWith("~"))
+                    {
+                        string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                        path = Path.Combine(home, path.Substring(1).TrimStart('\\', '/'));
+                    }
+                }
+
                 string target = Path.GetFullPath(path, Directory.GetCurrentDirectory());
 
                 if (!Directory.Exists(target))
                 {
-                    Console.WriteLine($"-bash: cd: {target}: No such file or directory");
+                    Console.WriteLine($"-bash: cd: {path}: No such file or directory");
                     return;
                 }
 
@@ -104,10 +120,9 @@ namespace LinuxBash
                 Console.WriteLine($"Cannot change directory: {ex.Message}");
             }
         }
-        public static void WhoAmI(string host)
+        public static void WhoAmI()
         {
-            string user = host.Split('@')[0];
-            Console.WriteLine(user);
+            Console.WriteLine(Environment.UserName);
         }
         public static void Mkdir(string[] args)
         {
@@ -152,7 +167,10 @@ namespace LinuxBash
         public static void Rm(string[] args)
         {
             if (args.Length == 0)
+            {
+                Console.WriteLine("Usage: rm <file> or rm -r <directory>");
                 return;
+            }
 
             if (args[0] == "-r")
             {
@@ -202,7 +220,7 @@ namespace LinuxBash
                 try
                 {
                     if (File.Exists(file))
-                        Console.WriteLine(File.ReadAllText(file));
+                        Console.Write(File.ReadAllText(file));
                     else
                         Console.WriteLine($"cat: {file}: No such file or directory");
                 }
@@ -214,7 +232,7 @@ namespace LinuxBash
         }
         public static void Cp(string[] args)
         {
-            if (args.Length == 0)
+            if (args.Length < 2)
             {
                 Console.WriteLine("Usage: cp <source> <target>");
                 return;
@@ -223,28 +241,26 @@ namespace LinuxBash
             string source = args[0];
             string target = args[1];
 
-            foreach (var file in args)
+            try
             {
-                try
+                if (!File.Exists(source))
                 {
-                    if (!File.Exists(source))
-                    {
-                        Console.WriteLine($"cp: {file}: No such file"); 
-                        return;
-                    }
-                    File.Copy(source, target, true);
+                    Console.WriteLine($"cp: {source}: No such file");
+                    return;
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Cannot copy file '{file}': {ex.Message}");
-                }
+
+                File.Copy(source, target, true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Cannot copy file '{source}': {ex.Message}");
             }
         }
         public static void Mv(string[] args)
         {
             if (args.Length < 2)
             {
-                Console.WriteLine("Usage: mv <filename> <filename>");
+                Console.WriteLine("Usage: mv <source> <target>");
                 return;
             }
 
@@ -271,8 +287,15 @@ namespace LinuxBash
         }
         public static void Version()
         {
-            Console.WriteLine("LinuxBash v0.1");
+            Console.WriteLine("LinuxBash v0.2");
             Console.WriteLine("Written in C#");
+        }
+        public static void History(List<string> history)
+        {
+            for (int i = 0; i < history.Count; i++)
+            {
+                Console.WriteLine($"  {i + 1}  {history[i]}");
+            }
         }
     }
 }
